@@ -13,11 +13,11 @@ const agentColors = {
   ProgressTracker: "text-amber-400 bg-white/5 border-white/10",
 };
 
-export default function AgentLogPanel({ logs }: { logs: AgentLog[] }) {
+export default function AgentLogPanel({ logs = [] }: { logs?: AgentLog[] }) {
   const [visibleLogs, setVisibleLogs] = useState<AgentLog[]>([]);
   useEffect(() => {
-    if (logs.length === 0) return;
-    if (logs[0].id !== visibleLogs[0]?.id && logs.length > visibleLogs.length) {
+    if (!logs || logs.length === 0) return;
+    if (logs[0]?.id !== visibleLogs[0]?.id && logs.length > visibleLogs.length) {
        setVisibleLogs([]); let i = 0;
        const interval = setInterval(() => {
          if (i < logs.length) { setVisibleLogs(prev => [...prev, logs[i]]); i++; }
@@ -38,7 +38,7 @@ export default function AgentLogPanel({ logs }: { logs: AgentLog[] }) {
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-sm max-h-[500px]">
         {visibleLogs.length === 0 && <div className="text-slate-600 text-center py-8">Waiting for agent activity...</div>}
-        {visibleLogs.map((log) => {
+        {visibleLogs.filter(Boolean).map((log) => {
           const Icon = agentIcons[log.agent]; const colorClasses = agentColors[log.agent];
           return (
             <div key={log.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2">
