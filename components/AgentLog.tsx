@@ -16,15 +16,31 @@ const agentColors = {
 export default function AgentLogPanel({ logs }: { logs: AgentLog[] }) {
   const [visibleLogs, setVisibleLogs] = useState<AgentLog[]>([]);
   useEffect(() => {
-    if (logs.length === 0) { setVisibleLogs([]); return; }
+  if (logs.length === 0) {
     setVisibleLogs([]);
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < logs.length) { setVisibleLogs(prev => [...prev, logs[i]]); i++; }
-      else clearInterval(interval);
-    }, 400);
-    return () => clearInterval(interval);
-  }, [logs]);
+    return;
+  }
+
+  setVisibleLogs([]);
+
+  let i = 0;
+
+  const interval = setInterval(() => {
+    if (i < logs.length) {
+      const nextLog = logs[i];
+
+      if (nextLog) {
+        setVisibleLogs(prev => [...prev, nextLog]);
+      }
+
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 400);
+
+  return () => clearInterval(interval);
+}, [logs]);
 
   return (
     <div className="flex flex-col glass rounded-2xl overflow-hidden h-full">
@@ -37,9 +53,17 @@ export default function AgentLogPanel({ logs }: { logs: AgentLog[] }) {
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-sm max-h-[500px]">
         {visibleLogs.length === 0 && <div className="text-slate-600 text-center py-8">Waiting for agent activity...</div>}
-        {visibleLogs.map((log) => {
-          const Icon = agentIcons[log.agent]; const colorClasses = agentColors[log.agent];
-          return (
+        {visibleLogs
+  .filter(Boolean)
+  .map((log) => {
+
+    const Icon = agentIcons[log.agent] ?? Terminal;
+
+    const colorClasses =
+      agentColors[log.agent] ??
+      "text-slate-400 bg-white/5 border-white/10";
+
+    return (
             <div key={log.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2">
               <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border glass", colorClasses)}>
                 <Icon className="w-4 h-4" />
