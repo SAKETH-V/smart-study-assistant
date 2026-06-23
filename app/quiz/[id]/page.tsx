@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 
 export default function QuizInterface() {
   const params = useParams(); const router = useRouter();
+  const [autoNextTimer, setAutoNextTimer] = useState<NodeJS.Timeout | null>(null);
   const [quiz, setQuiz] = useState<any>(null); const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0); const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false); const [score, setScore] = useState(0);
@@ -22,21 +23,71 @@ export default function QuizInterface() {
   }, [params.id]);
 
   const handleSelect = (idx: number) => {
-    if (isAnswered) return; setSelectedOption(idx); setIsAnswered(true);
-    if (idx === quiz.questionsArray[currentIndex].correctAnswerIndex) setScore(s => s + 1);
-  };
+  if (isAnswered) return;
+
+  setSelectedOption(idx);
+  setIsAnswered(true);
+
+  const isCorrect =
+    idx === quiz.questionsArray[currentIndex].correctAnswerIndex;
+
+  if (isCorrect) {
+    setScore((prev) => prev + 1);
+  }
+
+  if (autoNextTimer) {
+    clearTimeout(autoNextTimer);
+  }
+
+  const timer = setTimeout(() => {
+    handleNext();
+  }, 2500);
+
+  setAutoNextTimer(timer);
+};
 
   const handleNext = async () => {
-    if (currentIndex < quiz.questionsArray.length - 1) {
-      setCurrentIndex(i => i + 1); setSelectedOption(null); setIsAnswered(false); setExplanation(null);
-    } else {
-      setLoading(true);
-      const finalScore = selectedOption === quiz.questionsArray[currentIndex].correctAnswerIndex ? score + 1 : score;
-      const res = await fetch("/api/quiz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: "demo_user", quizId: quiz.id, topic: quiz.topic, score: finalScore, total: quiz.questionsArray.length }) });
-      const data = await res.json(); if (data.logs) setLogs(data.logs);
-      setLoading(false); setCompleted(true);
+  // Move to next question
+  if (currentIndex < quiz.questionsArray.length - 1) {
+    setCurrentIndex((prev) => prev + 1);
+    setSelectedOption(null);
+    setIsAnswered(false);
+    setExplanation(null);
+    return;
+  }
+
+  // Finish quiz
+  setLoading(true);
+
+  const finalScore = score;
+
+  try {
+    const res = await fetch("/api/quiz", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: "demo_user",
+        quizId: quiz.id,
+        topic: quiz.topic,
+        score: finalScore,
+        total: quiz.questionsArray.length,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data.logs) {
+      setLogs(data.logs);
     }
-  };
+  } catch (err) {
+    console.error(err);
+  }
+
+  setLoading(false);
+  setCompleted(true);
+};
 
   const requestDeepExplanation = async () => {
     setExplaining(true); setLogs([]);
